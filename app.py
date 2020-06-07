@@ -44,9 +44,13 @@ class Signup(Resource):
 		data = request.get_json(force=True)
 		user = mongo.db.user.find_one({"username":data["username"]})
 		if(user == None):
+			
 			mongo.db.get_collection('user').insert_one(request.json).inserted_id
 			return jsonify({"status":"200","message":"signup successful"})
 		return jsonify({"status":"400","message":"username not available"})
+# class FileLink(Resource):
+# 	def post(self):
+
 			
 
 class upload_file(Resource):
@@ -59,7 +63,7 @@ class upload_file(Resource):
 		if file and allowed_file(file.filename):
 			filename = secure_filename(file.filename)
 			file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-			return jsonify({"status":"200"})
+			return jsonify({"status":"200","message":"file uploaded"})
 
 class TR(Resource):
 	def post(self):
@@ -75,17 +79,24 @@ class TR(Resource):
 
 		return jsonify(json.dumps(json.loads(df.to_json(orient='values'))))
 
-class TR_RESULTS(Resource):
-	def get(self):
+class SAVE_TR_RESULTS(Resource):
+	def post(self):
+		data = request.get_json(force = True)
+		# user = mongo.db.user.find_one_or_404({"username":data['username']})
+		# if(user['password'] != data['password']):
+		# 	return jsonify({"status":"400","message":"incorrect password"})
+		# return jsonify({"status":"200","message":user["username"]})
 		df = pd.read_excel('output.xlsx')
-		print(json.dumps(json.loads(df.to_json(orient='values'))))
+		print(request.get_json(force=True))
+		filename = data[0]+'_'+data[1]
+		df.to_excel("Outputs/"+str(filename)+".xlsx")
 
-		return jsonify(json.dumps(json.loads(df.to_json(orient='values'))))
+		return jsonify({"status":"200","message":"file digitized"})
 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
 
 api.add_resource(upload_file,'/uploads')
 api.add_resource(TR,'/tr')
-api.add_resource(TR_RESULTS,'/tr_results')
+api.add_resource(SAVE_TR_RESULTS,'/save')
 api.add_resource(Login,'/login')
 api.add_resource(Signup,'/signup')
 if __name__ == "__main__":
