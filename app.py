@@ -7,97 +7,154 @@ import numpy as np
 from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
 from flask_pymongo import PyMongo
+import jwt
 
 from werkzeug.utils import secure_filename
 
 from flask_cors import CORS
-
-
+import pymongo
 
 
 UPLOAD_FOLDER = './HTR'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
-
+JWT_SECRET = 'JDFKLDSJFKDSJFMFLI})(RKD'
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config["MONGO_DBNAME"] = "fyp"
-app.config["MONGO_URI"] = "mongodb://127.0.0.1:27017/fyp"
-mongo = PyMongo(app)
+
+mongoClient = pymongo.MongoClient("mongodb://localhost:27017/")
+mongoDB = mongoClient["TableDigitizer"]
 
 CORS(app)
 api = Api(app)
 
 
+def checkAuthHeader(request):
+    try:
+        print(request.headers.get('Authorization'))
+        encoded_jwt = request.headers.get('Authorization').split(' ')[1]
+        payload = jwt.decode(
+            encoded_jwt, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload['user_id']
+        print("Verification ID")
+        print(user_id)
+        return user_id
+
+    except Exception:
+        return -1
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    print(request)
+    print(request.json.get('username'))
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    user = mongoDB['users'].find_one({"username": username})
+
+    if user is not None:
+        print("user found")
+        if (password == user['password']):
+            # create JWT and return
+            print("creating token")
+            token = jwt.encode(
+                {'user_id': json.dumps(user['_id'], default=str)}, JWT_SECRET, algorithm='HS256').decode('utf-8')
+            print("token", token)
+            return jsonify({"access_token": token,"username":username})
+        else:
+            return "Incorrect password", 403
+
+    else:
+        return "User does not exist", 404
+
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    print(request)
+    username = request.json.get('username')
+    password = request.json.get('password')
+    email = request.json.get('email')
+
+    user = mongoDB['users'].find_one({"username": username})
+
+    if user is not None:
+        return "User already exists", 409
+
+    else:
+        # create user
+        user = mongoDB['users'].insert_one(
+            {'username': username, 'password': password, 'email': email})
+        token = jwt.encode(
+            {'user_id': json.dumps(user.inserted_id, default=str)}, JWT_SECRET, algorithm='HS256').decode('utf-8')
+        print("token", token)
+        return jsonify({"access_token": token})
+
+
+@app.route('/verify', methods=['GET'])
+def verify_token():
+    user_id = checkAuthHeader(request)
+    if user_id == -1:
+        return "Unauthorized", 403
+    return "Success", 200
+
+
 def allowed_file(filename):
-	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-class Login(Resource):
-	def post(self):
-		data = request.get_json(force = True)
-		user = mongo.db.user.find_one_or_404({"username":data['username']})
-		if(user['password'] != data['password']):
-			return jsonify({"status":"400","message":"incorrect password"})
-		return jsonify({"status":"200","message":user["username"]})
-class Signup(Resource):
-	def post(self):
-		data = request.get_json(force=True)
-		user = mongo.db.user.find_one({"username":data["username"]})
-		if(user == None):
-			
-			mongo.db.get_collection('user').insert_one(request.json).inserted_id
-			return jsonify({"status":"200","message":"signup successful"})
-		return jsonify({"status":"400","message":"username not available"})
-# class FileLink(Resource):
-# 	def post(self):
-
-			
 
 class upload_file(Resource):
-	def post(self):
-		if 'Image' not in request.files:
-			return jsonify({"status":"404"})
-		file = request.files['Image']
-		if file.filename == '':
-			return jsonify({"status":"301"})
-		if file and allowed_file(file.filename):
-			filename = secure_filename(file.filename)
-			file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-			return jsonify({"status":"200","message":"file uploaded"})
+    def post(self):
+        if 'Image' not in request.files:
+            return jsonify({"status": "404"})
+        file = request.files['Image']
+        if file.filename == '':
+            return jsonify({"status": "301"})
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return jsonify({"status": "200"})
+
 
 class TR(Resource):
+    def post(self):
+        process = subprocess.Popen('python3 ./HTR/src/main.py', shell=True)
+        ret = process.communicate()[0]
+        process.wait()
+
+        process2 = subprocess.Popen('python3 ./piping.py', shell=True)
+        ret2 = process2.communicate([0])
+        process2.wait()
+        df = pd.read_excel('output.xlsx', header=None)
+        print(json.dumps(json.loads(df.to_json(orient='values'))))
+
+        return jsonify(json.dumps(json.loads(df.to_json(orient='values'))))
+
+
+class SAVE_RESULTS(Resource):
 	def post(self):
-		process = subprocess.Popen('python3 ./HTR/src/main.py',shell=True)
-		ret = process.communicate()[0]
-		process.wait()
-
-		process2 = subprocess.Popen('python3 ./piping.py', shell=True)
-		ret2 = process2.communicate([0])
-		process2.wait()
-		df = pd.read_excel('output.xlsx',header=None)
-		print(json.dumps(json.loads(df.to_json(orient='values'))))
-
-		return jsonify(json.dumps(json.loads(df.to_json(orient='values'))))
-
-class SAVE_TR_RESULTS(Resource):
-	def post(self):
+		user_id = checkAuthHeader(request)
 		data = request.get_json(force = True)
-		# user = mongo.db.user.find_one_or_404({"username":data['username']})
-		# if(user['password'] != data['password']):
-		# 	return jsonify({"status":"400","message":"incorrect password"})
-		# return jsonify({"status":"200","message":user["username"]})
-		df = pd.read_excel('output.xlsx')
-		print(request.get_json(force=True))
-		filename = data[0]+'_'+data[1]
-		df.to_excel("Outputs/"+str(filename)+".xlsx")
+		username = data[1]
+		filename = str(data[0]+'_'+data[1])
+		user = mongoDB['users'].find_one({'username':username})
+		path = 'Outputs'
+		fileInfo = mongoDB['fileInfo'].insert_one(
+			{'user_id':user_id,'username':username,'filename':filename,'path':path}
+		)
 
-		return jsonify({"status":"200","message":"file digitized"})
+		df = pd.read_excel('output.xlsx')
+		df.to_excel(path+"/"+str(filename)+".xlsx")
+
+		return jsonify({"status":"200","message":"file stored"})
+		
 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
 
-api.add_resource(upload_file,'/uploads')
-api.add_resource(TR,'/tr')
-api.add_resource(SAVE_TR_RESULTS,'/save')
-api.add_resource(Login,'/login')
-api.add_resource(Signup,'/signup')
+
+api.add_resource(upload_file, '/uploads')
+api.add_resource(TR, '/tr')
+api.add_resource(SAVE_RESULTS, '/save')
+# api.add_resource(Login, '/login')
+# api.add_resource(Signup, '/signup')
 if __name__ == "__main__":
-	app.run(debug=True,host='0.0.0.0',port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
