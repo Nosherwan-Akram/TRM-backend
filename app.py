@@ -135,9 +135,9 @@ class SAVE_RESULTS(Resource):
 	def post(self):
 		user_id = checkAuthHeader(request)
 		data = request.get_json(force = True)
-		username = data[1]
+		username = data[0]
 		filename = str(data[0]+'_'+data[1])
-		user = mongoDB['users'].find_one({'username':username})
+		# user = mongoDB['users'].find_one({'username':username})
 		path = 'Outputs'
 		fileInfo = mongoDB['fileInfo'].insert_one(
 			{'user_id':user_id,'username':username,'filename':filename,'path':path}
@@ -149,6 +149,7 @@ class SAVE_RESULTS(Resource):
 		return jsonify({"status":"200","message":"file stored"})
 		
 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+
 
 
 api.add_resource(upload_file, '/uploads')
