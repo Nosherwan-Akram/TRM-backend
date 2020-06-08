@@ -8,6 +8,8 @@ from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
 from flask_pymongo import PyMongo
 import jwt
+import uuid
+import boto3
 
 from werkzeug.utils import secure_filename
 
@@ -18,12 +20,33 @@ import pymongo
 UPLOAD_FOLDER = './HTR'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+ACCESS_KEY = 'AKIAUMRR62NECPH53R5Z  '
+SECRET_KEY = '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'
+
+AWS_S3_BASEURL = 'https://tabledigitizer.s3-ap-southeast-1.amazonaws.com/'
 JWT_SECRET = 'JDFKLDSJFKDSJFMFLI})(RKD'
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 mongoClient = pymongo.MongoClient("mongodb://localhost:27017/")
 mongoDB = mongoClient["TableDigitizer"]
+
+
+def upload_to_aws(local_file, bucket, s3_file):
+    s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,
+                      aws_secret_access_key=SECRET_KEY)
+
+    try:
+        s3.upload_file(local_file, bucket, s3_file)
+        print("Upload Successful")
+        return True
+    except FileNotFoundError:
+        print("The file was not found")
+        return False
+    except Exception as e:
+        print(e)
+        return False
+
 
 CORS(app)
 api = Api(app)
@@ -61,7 +84,7 @@ def login():
             token = jwt.encode(
                 {'user_id': json.dumps(user['_id'], default=str)}, JWT_SECRET, algorithm='HS256').decode('utf-8')
             print("token", token)
-            return jsonify({"access_token": token,"username":username})
+            return jsonify({"access_token": token, "username": username})
         else:
             return "Incorrect password", 403
 
@@ -132,29 +155,46 @@ class TR(Resource):
 
 
 class SAVE_RESULTS(Resource):
-	def post(self):
-		user_id = checkAuthHeader(request)
-		data = request.get_json(force = True)
-		username = data[0]
-		filename = str(data[0]+'_'+data[1])
-		# user = mongoDB['users'].find_one({'username':username})
-		path = 'Outputs'
-		fileInfo = mongoDB['fileInfo'].insert_one(
-			{'user_id':user_id,'username':username,'filename':filename,'path':path}
-		)
 
-		df = pd.read_excel('output.xlsx')
-		df.to_excel(path+"/"+str(filename)+".xlsx")
+    def post(self):
+        user_id = checkAuthHeader(request)
+        data = request.get_json(force=True)
+        username = data[0]
+        filename = str(data[0]+'_'+data[1])
+        user = mongoDB['users'].find_one({'username': username})
+        # path = 'Outputs'
+        s3_filename = filename + str(uuid.uuid4())[:11] + '.xlsx'
+        upload_to_aws('output.xlsx', 'tabledigitizer', s3_filename)
 
-		return jsonify({"status":"200","message":"file stored"})
-		
+        fileInfo = mongoDB['fileInfo'].insert_one(
+            {'user_id': user_id, 'username': username,
+                'filename': filename, 'path': AWS_S3_BASEURL + s3_filename}
+        )
+        print(user)
+        print(fileInfo)
+        # df = pd.read_excel('output.xlsx')
+        # df.to_excel(path+"/"+str(filename)+".xlsx")
+
+        return jsonify({"status": "200", "message": "file stored"})
+
 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-
+class SHOW_FILES(Resource):
+	def get(self):
+		user_id = checkAuthHeader(request)
+		files_info = mongoDB['fileInfo'].find({'user_id':user_id})
+		files = []
+		for f in files_info:
+			
+			files.append({'filename':f["filename"],'path':f["path"]})
+			# files[1].append(f["path"])
+		print(json.dumps(files))
+		return jsonify(json.dumps(files))
 
 
 api.add_resource(upload_file, '/uploads')
 api.add_resource(TR, '/tr')
 api.add_resource(SAVE_RESULTS, '/save')
+api.add_resource(SHOW_FILES,'/showfiles')
 # api.add_resource(Login, '/login')
 # api.add_resource(Signup, '/signup')
 if __name__ == "__main__":
