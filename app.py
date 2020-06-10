@@ -67,7 +67,7 @@ def checkAuthHeader(request):
         return -1
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     print(request)
     print(request.json.get('username'))
@@ -92,7 +92,7 @@ def login():
         return "User does not exist", 404
 
 
-@app.route('/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
 def signup():
     print(request)
     username = request.json.get('username')
@@ -114,7 +114,7 @@ def signup():
         return jsonify({"access_token": token})
 
 
-@app.route('/verify', methods=['GET'])
+@app.route('/api/verify', methods=['GET'])
 def verify_token():
     user_id = checkAuthHeader(request)
     if user_id == -1:
@@ -186,15 +186,14 @@ class SHOW_FILES(Resource):
 		for f in files_info:
 			
 			files.append({'filename':f["filename"],'path':f["path"]})
-			# files[1].append(f["path"])
 		print(json.dumps(files))
 		return jsonify(json.dumps(files))
 
 
-api.add_resource(upload_file, '/uploads')
-api.add_resource(TR, '/tr')
-api.add_resource(SAVE_RESULTS, '/save')
-api.add_resource(SHOW_FILES,'/showfiles')
+api.add_resource(upload_file, '/api/uploads')
+api.add_resource(TR, '/api/tr')
+api.add_resource(SAVE_RESULTS, '/api/save')
+api.add_resource(SHOW_FILES,'/api/showfiles')
 # api.add_resource(Login, '/login')
 # api.add_resource(Signup, '/signup')
 if __name__ == "__main__":

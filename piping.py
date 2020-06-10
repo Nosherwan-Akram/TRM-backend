@@ -12,90 +12,6 @@ import cv2
 
 htrData = pd.read_excel('out.xlsx',header=None).iloc[1:,1:]
 
-'''
-htrdata = pd.read_excel('HTR/output.xlsx',header=None)
-ptrdata = pd.read_excel('PTR/output.xlsx',header=None)
-
-ptr = ptrdata.iloc[3:,0:len(ptrdata.iloc[0])-2]
-htr = htrdata.iloc[3:,len(htrdata.iloc[0])-2:]
-ptrHead = ptrdata.iloc[0:3,:]
-
-
-data = pd.concat([ptr,htr],axis=1)
-data = pd.concat([ptrHead,data],axis=0)
-
-
-workbook = xlsxwriter.Workbook('output.xlsx')
-worksheet = workbook.add_worksheet()
-
-excelData = (np.array(data))
-
-row = 0
-col = 0
-
-if (len(data.iloc[0]) == 7):
-	for a, b, c, d, e, f, g in (excelData):
-		worksheet.write(row, col,     a)
-		worksheet.write(row, col + 1, b)
-		worksheet.write(row, col + 2, c)
-		worksheet.write(row, col + 3, d)
-		worksheet.write(row, col + 4, e)
-		worksheet.write(row, col + 5, f)
-		worksheet.write(row, col + 6, g)
-
-		row += 1
-
-	worksheet.merge_range('A2:G2', 'PhysicalandChemicalParameters')
-	worksheet.merge_range('A21:G21', 'BacteriologicalParameters')
-	worksheet.merge_range('A24:G24', 'ToxicSubstances')
-
-
-	workbook.close()
-
-elif (len(data.iloc[0]) == 6):
-	for a, b, c, d, e, f in (excelData):
-		worksheet.write(row, col,     a)
-		worksheet.write(row, col + 1, b)
-		worksheet.write(row, col + 2, c)
-		worksheet.write(row, col + 3, d)
-		worksheet.write(row, col + 4, e)
-		worksheet.write(row, col + 5, f)
-		row += 1
-
-	worksheet.merge_range('A2:F2', 'PhysicalandChemicalParameters')
-	worksheet.merge_range('A21:F21', 'BacteriologicalParameters')
-	worksheet.merge_range('A24:F24', 'ToxicSubstances')
-
-
-	workbook.close()
-
-
-
-data = pd.read_excel('output.xlsx',header=None)
-testData = pd.read_excel('testOutput.xlsx',header=None)
-testData.fillna('*',inplace=True)
-
-numCharErr = 0
-numCharTotal = 0
-numWordOK = 0
-numWordTotal = 0
-
-print(data)
-print(testData)
-for i in range(data.shape[0]):
-	for j in range(data.shape[1]):
-		numWordOK += 1 if str(data.iloc[i][j]) == str(testData.iloc[i][j]) else 0
-		numWordTotal += 1
-		dist = editdistance.eval(str(data.iloc[i][j]), str(testData.iloc[i][j]))
-		numCharErr += dist
-		numCharTotal += len(str(testData.iloc[i][j]))
-		#print('[OK]' if dist==0 else '[ERR:%d]' % dist,'"' + batch.gtTexts[i] + '"', '->', '"' + recognized[i] + '"')
-	
-charErrorRate = numCharErr / numCharTotal
-wordAccuracy = numWordOK / numWordTotal
-print('Character error rate: %f%%. Word accuracy: %f%%.' % (charErrorRate*100.0, wordAccuracy*100.0))
-
-'''
 
 def detect_text(path):
     """Detects text in the file."""
@@ -137,32 +53,6 @@ row_map={}
 col_map={}
 TEXTS = []
 
-'''prev = text_detections[0]
-
-
-text_detections_copy = text_detections.copy()
-for i, detection in enumerate(text_detections[1:]):
-    text_obj = {}
-    #text_obj['left'] = detection.bounding_poly.vertices[0].x
-    #text_obj['right'] = detection.bounding_poly.vertices[1].x
-    #text_obj['top'] = detection.bounding_poly.vertices[0].y
-    #text_obj['bottom'] = detection.bounding_poly.vertices[3].y
-    text_obj['right_mid'] = (int((detection.bounding_poly.vertices[0].x+detection.bounding_poly.vertices[3].x)/2), int((detection.bounding_poly.vertices[0].y+detection.bounding_poly.vertices[3].y)/2))
-    text_obj['prev_right_mid'] = (int((prev.bounding_poly.vertices[1].x+prev.bounding_poly.vertices[2].x)/2), int((prev.bounding_poly.vertices[1].y+prev.bounding_poly.vertices[2].y)/2))
-    text_obj['description'] = detection.description
-    text_obj['prev_description'] = prev.description
-
-    if distance.euclidean(text_obj['prev_right_mid'],text_obj['right_mid'])<15:
-    #	print(prev.description,detection.description,text_obj['prev_right_mid'],text_obj['right_mid'])
-    	text_detections[i-1].description = prev.description + " " + detection.description
-    	#text_detections[i-1].bounding_poly.vertices = text_detections[i].bounding_poly.vertices
-    	#text_detections[i-1].bounding_poly.vertices[2] = text_detections[i].bounding_poly.vertices[2]
-    	text_detections[i].description = ''
-	
-    prev = detection
-
-    print(text_detections[i].description)'''
-
 for i, detection in enumerate(text_detections):
 
     text_obj = {}
@@ -190,7 +80,7 @@ for i, detection in enumerate(text_detections):
     end_row = 0
     for j in range(0, len(cols_start_end)):
         if left_bound < cols_start_end[j][0] :
-            continue;
+            continue
         left_diff = abs(left_bound - cols_start_end[j][0])
         
         if left_diff < min_left_diff:
@@ -226,61 +116,8 @@ for i, detection in enumerate(text_detections):
             min_bottom_diff = bottom_diff
             end_row = j + 1
     row_map[i] = (start_row,end_row)
-    '''
-    for j in range(0, len(cols_start_end)):
-#         if left_bound < cols_start_end[j][0]:
-#             continue;
-        left_diff = abs(left_bound - cols_start_end[j][0])
-        
-        if left_diff < min_left_diff:
-            min_left_diff = left_diff
-            start_col = j + 1
-
-    for j in range(len(cols_start_end)-1, start_col-2, -1):
-#         if right_bound > cols_start_end[j][1]:
-#             continue
-        right_diff = abs(right_bound - cols_start_end[j][1])
-        if (right_diff <= min_right_diff):
-            min_right_diff = right_diff
-            end_col = j + 1
-            
-    col_map[i] = (start_col, end_col)
-            
-    # And do the same for rows:
-    for j in range(0, len(rows_start_end)):
-#         if top_bound < rows_start_end[j][0]:
-#             continue;
-        top_diff = abs(top_bound - rows_start_end[j][0])
-        
-        if top_diff < min_top_diff:
-            min_top_diff = top_diff
-            start_row = j + 1
-        
-    
-    for j in range(len(rows_start_end)-1, start_row-2, -1):
-#         if bottom_bound > rows_start_end[j][1]:
-#             continue
-        bottom_diff = abs(bottom_bound - rows_start_end[j][1])
-        if (bottom_diff <= min_bottom_diff):
-            min_bottom_diff = bottom_diff
-            end_row = j + 1
-    row_map[i] = (start_row, end_row)
-    '''
     TEXTS.append(detection.description)
 
-
-
-
-for i in row_map:
-	#if row_map[i][0]<row_map[i][1]:
-	#	print(i,row_map[i],TEXTS[i])
-	if row_map[i][0]!=row_map[i][1]:
-		print(row_map[i][0],row_map[i][1])
-for i in col_map:
-	#if row_map[i][0]<row_map[i][1]:
-	#	print(i,row_map[i],TEXTS[i])
-	if col_map[i][0]!=col_map[i][1]:
-		print(col_map[i][0],col_map[i][1])
 
 for i in col_map:
 	if col_map[i][0]>col_map[i][1]:
