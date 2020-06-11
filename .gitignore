@@ -2,8 +2,6 @@ __pycache__
 HTR/data/words/
 HTR/data/words.txt
 HTR/src/__pycache__/
-HTR/model/checkpoint
-HTR/model/snapshot-*
 HTR/notes/
 HTR/*.so
 HTR/*.pyc
