@@ -170,10 +170,6 @@ class SAVE_RESULTS(Resource):
             {'user_id': user_id, 'username': username,
                 'filename': filename, 'path': AWS_S3_BASEURL + s3_filename}
         )
-        print(user)
-        print(fileInfo)
-        # df = pd.read_excel('output.xlsx')
-        # df.to_excel(path+"/"+str(filename)+".xlsx")
 
         return jsonify({"status": "200", "message": "file stored"})
 
@@ -185,7 +181,7 @@ class SHOW_FILES(Resource):
 		files = []
 		for f in files_info:
 			
-			files.append({'filename':f["filename"],'path':f["path"]})
+			files.append({'filename':f["filename"].split('_')[1],'path':f["path"]})
 		print(json.dumps(files))
 		return jsonify(json.dumps(files))
 
@@ -194,7 +190,6 @@ api.add_resource(upload_file, '/api/uploads')
 api.add_resource(TR, '/api/tr')
 api.add_resource(SAVE_RESULTS, '/api/save')
 api.add_resource(SHOW_FILES,'/api/showfiles')
-# api.add_resource(Login, '/login')
-# api.add_resource(Signup, '/signup')
+
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
