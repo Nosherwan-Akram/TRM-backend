@@ -66,9 +66,6 @@ def checkAuthHeader(request):
     except Exception:
         return -1
 
-@app.route('/api/hello', methods=['GET'])
-def hello():
-    return "Hello", 200
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -131,9 +128,9 @@ def allowed_file(filename):
 
 class upload_file(Resource):
     def post(self):
-    	user_id = checkAuthHeader(request)
+        user_id = checkAuthHeader(request)
         if (user_id == -1):
-			return "Unauthorized", 403
+            return "Unauthorized", 403
         if 'Image' not in request.files:
             return jsonify({"status": "404"})
         file = request.files['Image']
@@ -147,9 +144,9 @@ class upload_file(Resource):
 
 class TR(Resource):
     def post(self):
-    	user_id = checkAuthHeader(request)
+        user_id = checkAuthHeader(request)
         if (user_id == -1):
-			return "Unauthorized", 403
+            return "Unauthorized", 403
         process = subprocess.Popen('python3 ./HTR/src/main.py', shell=True)
         ret = process.communicate()[0]
         process.wait()
@@ -168,10 +165,11 @@ class SAVE_RESULTS(Resource):
     def post(self):
         user_id = checkAuthHeader(request)
         if (user_id == -1):
-			return "Unauthorized", 403
+            return "Unauthorized", 403
         data = request.get_json(force=True)
         username = data[0]
         filename = str(data[0]+'_'+data[1])
+
         user = mongoDB['users'].find_one({'username': username})
         # path = 'Outputs'
         s3_filename = filename + str(uuid.uuid4())[:11] + '.xlsx'
@@ -181,6 +179,7 @@ class SAVE_RESULTS(Resource):
             {'user_id': user_id, 'username': username,
                 'filename': filename, 'path': AWS_S3_BASEURL + s3_filename}
         )
+
         print(user)
         print(fileInfo)
         # df = pd.read_excel('output.xlsx')
@@ -190,41 +189,56 @@ class SAVE_RESULTS(Resource):
 
 class UPLOADANDSAVE(Resource):
 
-	def post(self):
-		# Part 1 --- Save Uploaded Image ---
-		user_id = checkAuthHeader(request)
-		if (user_id == -1):
-			return "Unauthorized", 403
+    def post(self):
+        # Part 1 --- Save Uploaded Image ---
+        user_id = checkAuthHeader(request)
+        if (user_id == -1):
+            return "Unauthorized", 403
+
+        username = mongoDB['users'].find_one({'_id': user_id})['username']
+
+        print(username)
 
 
-		print(request.files)
-		print(request.form)
-		print(request.json)
-		if 'Image' not in request.files:
+        print(request.files)
+        print(request.files['file'])
+        print(request.files['file'].filename)
+        print(request.form)
+        if 'Image' not in request.files:
             return jsonify({"status": "404"})
-        file = request.files['Image']
+        file = request.files['file']
         if file.filename == '':
             return jsonify({"status": "301"})
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            filename = 'test.jpg'
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
-        #	
+        process = subprocess.Popen('python3 ./HTR/src/main.py', shell=True)
+        ret = process.communicate()[0]
+        process.wait()
+
+        process2 = subprocess.Popen('python3 ./piping.py', shell=True)
+        ret2 = process2.communicate([0])
+        process2.wait()
+        
+        
+
+        
 
 
 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
 class SHOW_FILES(Resource):
-	def get(self):
-		user_id = checkAuthHeader(request)
-		if (user_id == -1):
-			return "Unauthorized", 403
-		files_info = mongoDB['fileInfo'].find({'user_id':user_id})
-		files = []
-		for f in files_info:
-			
-			files.append({'filename':f["filename"],'path':f["path"]})
-		print(json.dumps(files))
-		return jsonify(json.dumps(files))
+    def get(self):
+        user_id = checkAuthHeader(request)
+        if (user_id == -1):
+            return "Unauthorized", 403
+        files_info = mongoDB['fileInfo'].find({'user_id':user_id})
+        files = []
+        for f in files_info:
+            
+            files.append({'filename':f["filename"],'path':f["path"]})
+        print(json.dumps(files))
+        return jsonify(json.dumps(files))
 
 
 api.add_resource(upload_file, '/api/uploads')
