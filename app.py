@@ -128,6 +128,9 @@ def allowed_file(filename):
 
 class upload_file(Resource):
     def post(self):
+    	user_id = checkAuthHeader(request)
+        if (user_id == -1):
+			return "Unauthorized", 403
         if 'Image' not in request.files:
             return jsonify({"status": "404"})
         file = request.files['Image']
@@ -141,6 +144,9 @@ class upload_file(Resource):
 
 class TR(Resource):
     def post(self):
+    	user_id = checkAuthHeader(request)
+        if (user_id == -1):
+			return "Unauthorized", 403
         process = subprocess.Popen('python3 ./HTR/src/main.py', shell=True)
         ret = process.communicate()[0]
         process.wait()
@@ -158,6 +164,8 @@ class SAVE_RESULTS(Resource):
 
     def post(self):
         user_id = checkAuthHeader(request)
+        if (user_id == -1):
+			return "Unauthorized", 403
         data = request.get_json(force=True)
         username = data[0]
         filename = str(data[0]+'_'+data[1])
@@ -177,10 +185,36 @@ class SAVE_RESULTS(Resource):
 
         return jsonify({"status": "200", "message": "file stored"})
 
+class UPLOADANDSAVE(Resource):
+
+	def post(self):
+		# Part 1 --- Save Uploaded Image ---
+		user_id = checkAuthHeader(request)
+		if (user_id == -1):
+			return "Unauthorized", 403
+
+
+		print(request.files)
+		print(request.form)
+		print(request.json)
+		if 'Image' not in request.files:
+            return jsonify({"status": "404"})
+        file = request.files['Image']
+        if file.filename == '':
+            return jsonify({"status": "301"})
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        #	
+
+
 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
 class SHOW_FILES(Resource):
 	def get(self):
 		user_id = checkAuthHeader(request)
+		if (user_id == -1):
+			return "Unauthorized", 403
 		files_info = mongoDB['fileInfo'].find({'user_id':user_id})
 		files = []
 		for f in files_info:
@@ -194,6 +228,7 @@ api.add_resource(upload_file, '/api/uploads')
 api.add_resource(TR, '/api/tr')
 api.add_resource(SAVE_RESULTS, '/api/save')
 api.add_resource(SHOW_FILES,'/api/showfiles')
+api.add_resource(UPLOADANDSAVE, '/api/uploadandsave')
 # api.add_resource(Login, '/login')
 # api.add_resource(Signup, '/signup')
 if __name__ == "__main__":
