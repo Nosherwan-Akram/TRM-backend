@@ -66,6 +66,9 @@ def checkAuthHeader(request):
     except Exception:
         return -1
 
+@app.route('/api/hello', methods=['GET'])
+def hello():
+    return "Hello", 200
 
 @app.route('/api/login', methods=['POST'])
 def login():
