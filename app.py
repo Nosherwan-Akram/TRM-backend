@@ -131,9 +131,9 @@ def allowed_file(filename):
 
 class upload_file(Resource):
     def post(self):
-    	user_id = checkAuthHeader(request)
+        user_id = checkAuthHeader(request)
         if (user_id == -1):
-			return "Unauthorized", 403
+            return "Unauthorized", 403
         if 'Image' not in request.files:
             return jsonify({"status": "404"})
         file = request.files['Image']
@@ -147,9 +147,9 @@ class upload_file(Resource):
 
 class TR(Resource):
     def post(self):
-    	user_id = checkAuthHeader(request)
+        user_id = checkAuthHeader(request)
         if (user_id == -1):
-			return "Unauthorized", 403
+            return "Unauthorized", 403
         process = subprocess.Popen('python3 ./HTR/src/main.py', shell=True)
         ret = process.communicate()[0]
         process.wait()
@@ -168,7 +168,7 @@ class SAVE_RESULTS(Resource):
     def post(self):
         user_id = checkAuthHeader(request)
         if (user_id == -1):
-			return "Unauthorized", 403
+            return "Unauthorized", 403
         data = request.get_json(force=True)
         username = data[0]
         filename = str(data[0]+'_'+data[1])
@@ -186,17 +186,16 @@ class SAVE_RESULTS(Resource):
 
 class UPLOADANDSAVE(Resource):
 
-	def post(self):
-		# Part 1 --- Save Uploaded Image ---
-		user_id = checkAuthHeader(request)
-		if (user_id == -1):
-			return "Unauthorized", 403
+    def post(self):
+        user_id = checkAuthHeader(request)
+        if (user_id == -1):
+            return "Unauthorized", 403
 
 
-		print(request.files)
-		print(request.form)
-		print(request.json)
-		if 'Image' not in request.files:
+        print(request.files)
+        print(request.form)
+        print(request.json)
+        if 'Image' not in request.files:
             return jsonify({"status": "404"})
         file = request.files['Image']
         if file.filename == '':
