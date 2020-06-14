@@ -190,20 +190,15 @@ class SAVE_RESULTS(Resource):
 class UPLOADANDSAVE(Resource):
 
     def post(self):
-        # Part 1 --- Save Uploaded Image ---
         user_id = checkAuthHeader(request)
         if (user_id == -1):
             return "Unauthorized", 403
 
         username = mongoDB['users'].find_one({'_id': user_id})['username']
 
-        print(username)
-
-
         print(request.files)
-        print(request.files['file'])
-        print(request.files['file'].filename)
         print(request.form)
+        print(request.json)
         if 'Image' not in request.files:
             return jsonify({"status": "404"})
         file = request.files['file']
