@@ -231,9 +231,9 @@ class SHOW_FILES(Resource):
         files = []
         for f in files_info:
             
-            files.append({'filename':f["filename"],'path':f["path"]})
+            files.append({'filename':f["filename"].split("_")[1],'path':f["path"]})
         print(json.dumps(files))
-        return jsonify(files)
+        return jsonify(json.dumps(files))
 
 
 api.add_resource(upload_file, '/api/uploads')
