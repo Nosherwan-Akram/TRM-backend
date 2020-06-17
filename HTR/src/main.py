@@ -78,7 +78,7 @@ def validate(model, loader):
 		iterInfo = loader.getIteratorInfo()
 		print('Batch:', iterInfo[0],'/', iterInfo[1])
 		batch = loader.getNext()
-		(recognized, _) = model.inferBatch(batch)
+		(recognized) = model.inferBatch(batch)
 		
 		print('Ground truth -> Recognized')	
 		for i in range(len(recognized)):

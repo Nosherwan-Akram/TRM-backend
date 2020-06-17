@@ -1,4 +1,3 @@
-
 import json
 import os
 import subprocess
@@ -171,7 +170,6 @@ class SAVE_RESULTS(Resource):
         filename = str(data[0]+'_'+data[1])
 
         user = mongoDB['users'].find_one({'username': username})
-        # path = 'Outputs'
         s3_filename = filename + str(uuid.uuid4())[:11] + '.xlsx'
         upload_to_aws('output.xlsx', 'tabledigitizer', s3_filename)
 
@@ -180,10 +178,6 @@ class SAVE_RESULTS(Resource):
                 'filename': filename, 'path': AWS_S3_BASEURL + s3_filename}
         )
 
-        print(user)
-        print(fileInfo)
-        # df = pd.read_excel('output.xlsx')
-        # df.to_excel(path+"/"+str(filename)+".xlsx")
 
         return jsonify({"status": "200", "message": "file stored"})
 
@@ -194,11 +188,6 @@ class UPLOADANDSAVE(Resource):
         if (user_id == -1):
             return "Unauthorized", 403
 
-        username = mongoDB['users'].find_one({'_id': user_id})['username']
-
-        print(request.files)
-        print(request.form)
-        print(request.json)
         if 'Image' not in request.files:
             return jsonify({"status": "404"})
         file = request.files['file']
@@ -215,13 +204,7 @@ class UPLOADANDSAVE(Resource):
         process2 = subprocess.Popen('python3 ./piping.py', shell=True)
         ret2 = process2.communicate([0])
         process2.wait()
-        
-        
 
-        
-
-
-#stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
 class SHOW_FILES(Resource):
     def get(self):
         user_id = checkAuthHeader(request)
@@ -241,7 +224,6 @@ api.add_resource(TR, '/api/tr')
 api.add_resource(SAVE_RESULTS, '/api/save')
 api.add_resource(SHOW_FILES,'/api/showfiles')
 api.add_resource(UPLOADANDSAVE, '/api/uploadandsave')
-# api.add_resource(Login, '/login')
-# api.add_resource(Signup, '/signup')
+
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
